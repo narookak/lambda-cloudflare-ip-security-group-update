@@ -1,6 +1,8 @@
 import os
 import boto3
-import requests
+import json
+import urllib3
+import urllib
 
 
 def get_cloudflare_ip_list():
@@ -10,8 +12,10 @@ def get_cloudflare_ip_list():
     :rtype: list
     :return: List of IPs
     """
-    response = requests.get('https://api.cloudflare.com/client/v4/ips')
-    ips = response.json()
+    http = urllib3.PoolManager()
+    response = http.request('GET', 'https://api.cloudflare.com/client/v4/ips')
+    
+    ips =json.loads(response.data.decode('utf-8'))
     if 'result' in ips and 'ipv4_cidrs' in ips['result']:
         return ips['result']['ipv4_cidrs']
 
@@ -87,7 +91,7 @@ def lambda_handler(event, context):
     """
     ports = [int(port) for port in os.environ['PORTS_LIST'].split(",")]
     if not ports:
-        ports = [80]
+        ports = [443]
 
     security_group = get_aws_security_group(os.environ['SECURITY_GROUP_ID'])
     current_rules = security_group.ip_permissions
